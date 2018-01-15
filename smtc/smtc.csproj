@@ -79,6 +79,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+    <None Include="attachToSmtc.ps1" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
@@ -99,5 +100,8 @@
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PreBuildEvent>taskkill /f /fi "imagename eq $(TargetFileName)"</PreBuildEvent>
+  </PropertyGroup>
+  <PropertyGroup>
+    <PostBuildEvent>powershell -ExecutionPolicy Unrestricted $(ProjectDir)attachToSmtc.ps1 -ProjectDir $(ProjectDir) -TargetPath $(TargetPath)</PostBuildEvent>
   </PropertyGroup>
 </Project>
