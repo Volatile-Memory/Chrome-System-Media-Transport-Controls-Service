@@ -35,36 +35,58 @@ namespace smtc
             while ((data = Read()) != null)
             {
                 var processed = ProcessMessage(data);
-                Write(processed);
-                if (processed == "exit")
-                {
-                    return;
-                }
             }
-
-            //Thread.Sleep(Timeout.Infinite);
         }
 
         public static string ProcessMessage(JObject data)
         {
-            var title			= data["title"]			.Value<string>();
-            var artist			= data["artist"]		.Value<string>();
-            var albumArt		= data["albumArt"]		.Value<string>();
-            var playing			= data["playing"]		.Value<bool>();
-            var service			= data["service"]		.Value<string>();
-            var thumbsUp		= data["thumbsUp"]		.Value<bool>();
-            var thumbsDown		= data["thumbsDown"]	.Value<bool>();
-            var dontScrobble	= data["dontScrobble"]	.Value<bool>();
-            //var supports		= data["supports"]		.Value<string>();
-            var action			= data["action"]		.Value<string>();
+            try
+            {
+                var title = data["title"].Value<string>();
+                var artist = data["artist"].Value<string>();
+                var albumArt = data["albumArt"].Value<string>();
+                var playing = data["playing"].Value<bool>();
+                var service = data["service"].Value<string>();
 
-            smtc.Title = title;
-            smtc.AlbumArtist = artist;
-            smtc.Artist = artist;
-            smtc.Status = playing ? "Playing" : "Stopped";
-            smtc.AlbumArt = Windows.Storage.Streams.RandomAccessStreamReference.CreateFromUri(new Uri(albumArt));
 
-            return title;
+                var supports = data["supports"].Value<JObject>();
+
+
+                var supportsPlayPause = supports["playpause"]?.Value<bool>();
+                var supportsNext = supports["next"]?.Value<bool>();
+                var supportsPrevious = supports["previous"]?.Value<bool>();
+                var supportsFavorite = supports["favorite"]?.Value<bool>();
+
+                var thumbsUp = data["thumbsUp"]?.Value<bool>();
+                var thumbsDown = data["thumbsDown"]?.Value<bool>();
+
+
+                var dontScrobble = data["dontScrobble"].Value<bool>();
+                var action = data["action"].Value<string>();
+
+                smtc.Title = title;
+                smtc.AlbumArtist = artist;
+                smtc.Artist = artist;
+                smtc.Status = playing ? "Playing" : "Stopped";
+
+                try
+                {
+                    smtc.AlbumArt = Windows.Storage.Streams.RandomAccessStreamReference.CreateFromUri(new Uri(albumArt.Replace("\"", "")));
+                }
+                catch (Exception)
+                {
+                    Debug.WriteLine("failed to create albumart");
+                }
+
+            }
+            catch (Exception)
+            {
+                Debug.WriteLine("failed to parse json or set smtc metadata");
+            }
+
+           
+
+            return "Message Parsed.";
         }
 
         public static JObject Read()
@@ -92,7 +114,7 @@ namespace smtc
         {
             var json = new JObject();
             //Debugger.Launch();
-            //json["data"] = data;
+            json.Add("request", data);
 
             var bytes = System.Text.Encoding.UTF8.GetBytes(json.ToString(Formatting.None));
 
@@ -107,10 +129,6 @@ namespace smtc
 
         static async Task MainAsync(string[] args)
         {
-            var AlbumArt = RandomAccessStreamReference.CreateFromFile(
-                await StorageFile.GetFileFromPathAsync(@"C:\Users\CMPTRNDKP\Desktop\note.jpg")
-                );
-            smtc.AlbumArt = AlbumArt;
         }
     }
 }

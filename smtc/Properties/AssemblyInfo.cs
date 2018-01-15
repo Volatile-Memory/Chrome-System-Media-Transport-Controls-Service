@@ -8,7 +8,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTitle("Chrome System Media Transport Controls Service")]
 [assembly: AssemblyDescription("Displays Windows Modern App Style Playback Controls from Chrome Native Messaging.")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("Computron")]
+[assembly: AssemblyCompany("Computr0n")]
 [assembly: AssemblyProduct("Chrome System Media Transport Controls Service")]
 [assembly: AssemblyCopyright("Copyright ©  2018")]
 [assembly: AssemblyTrademark("")]
