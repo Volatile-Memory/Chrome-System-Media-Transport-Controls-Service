@@ -5,11 +5,11 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("smtc")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyTitle("Chrome System Media Transport Controls Service")]
+[assembly: AssemblyDescription("Displays Windows Modern App Style Playback Controls from Chrome Native Messaging.")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("smtc")]
+[assembly: AssemblyCompany("Computron")]
+[assembly: AssemblyProduct("Chrome System Media Transport Controls Service")]
 [assembly: AssemblyCopyright("Copyright ©  2018")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
