@@ -82,12 +82,6 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\Chrome4Net\src\Chrome4Net.Net35.csproj">
-      <Project>{d8cfa0a3-1f44-4989-8284-4983b1008e50}</Project>
-      <Name>Chrome4Net.Net35</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.6.1">
       <Visible>False</Visible>
       <ProductName>Microsoft .NET Framework 4.6.1 %28x86 and x64%29</ProductName>
