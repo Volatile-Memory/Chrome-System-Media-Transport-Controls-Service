@@ -45,7 +45,7 @@ namespace smtc
                 var title = data["title"].Value<string>();
                 var artist = data["artist"].Value<string>();
                 var albumArt = data["albumArt"].Value<string>();
-                var playing = data["playing"].Value<bool>();
+                var playing = data["playing"]?.Value<JObject>();
                 var service = data["service"].Value<string>();
 
 
@@ -61,13 +61,13 @@ namespace smtc
                 var thumbsDown = data["thumbsDown"]?.Value<bool>();
 
 
-                var dontScrobble = data["dontScrobble"].Value<bool>();
+                var dontScrobble = data["dontScrobble"]?.Value<bool>();
                 var action = data["action"].Value<string>();
 
                 smtc.Title = title;
                 smtc.AlbumArtist = artist;
                 smtc.Artist = artist;
-                smtc.Status = playing ? "Playing" : "Stopped";
+                //smtc.Status = (bool)playing["playing"]?.Value<bool>() ? "Playing" : "Stopped";
 
                 try
                 {
@@ -75,16 +75,16 @@ namespace smtc
                 }
                 catch (Exception)
                 {
-                    Debug.WriteLine("failed to create albumart");
+                    Debug.WriteLine("[Debug] Failed to create albumart.");
                 }
 
             }
             catch (Exception)
             {
-                Debug.WriteLine("failed to parse json or set smtc metadata");
+                Debug.WriteLine("[Debug] Failed to parse json or set smtc metadata.");
             }
 
-           
+            Debug.WriteLine(data.ToString());
 
             return "Message Parsed.";
         }
@@ -107,7 +107,7 @@ namespace smtc
                 }
             }
 
-            return (JObject)JsonConvert.DeserializeObject<JObject>(new string(buffer));
+            return (JObject)JsonConvert.DeserializeObject<JObject>(new string(buffer)); 
         }
 
         public static void Write(JToken data)
