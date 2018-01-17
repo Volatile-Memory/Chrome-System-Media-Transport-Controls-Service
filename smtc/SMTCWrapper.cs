@@ -20,7 +20,7 @@ namespace smtc
         private SystemMediaTransportControls _smtc;
 
         public SystemMediaTransportControlsWrapper()
-        {
+        {        
             _mediaPlayer = new MediaPlayer();
             _mediaPlayer.CommandManager.IsEnabled = false; // TODO: Figure out what this is doing and if it needs to be enabled or if it can be disabled and worked
             _smtc = _mediaPlayer.SystemMediaTransportControls;
@@ -91,6 +91,8 @@ namespace smtc
                 _smtc.DisplayUpdater.MusicProperties.Artist = data.Artist;
                 //smtc.Status = (bool)playing["playing"]?.Value<bool>() ? "Playing" : "Stopped";
 
+                Debug.WriteLine("[SMTC] Set Track Data");
+
                 _smtc.IsPlayEnabled = data.Supports.Playpause;
                 _smtc.IsPauseEnabled = data.Supports.Playpause;
                 //_smtc.IsStopEnabled = data.Supports.;
@@ -116,6 +118,7 @@ namespace smtc
             {
                 Debug.WriteLine("[Debug] Failed to parse json or set smtc metadata.");
             }
+            Debug.WriteLine("[SMTC] Set Player Capabilities.");
 
             try
             {
@@ -133,7 +136,7 @@ namespace smtc
                 Debug.WriteLine("[Debug] Failed to create albumart from URI: " + data.AlbumArt);
             }
 
-            Debug.WriteLine(data.ToString());
+            Debug.WriteLine("[SMTC] Set all data from JSON: " + data.ToJson());
 
             _smtc.DisplayUpdater.Update();
         }

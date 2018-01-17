@@ -6,10 +6,6 @@
 
 namespace QuickType
 {
-    using System;
-    using System.Net;
-    using System.Collections.Generic;
-
     using Newtonsoft.Json;
     using J = Newtonsoft.Json.JsonPropertyAttribute;
 
@@ -18,7 +14,10 @@ namespace QuickType
         [J("title")] public string Title { get; set; }
         [J("artist")] public string Artist { get; set; }
         [J("albumArt")] public string AlbumArt { get; set; }
-        [J("playing")] public Playing Playing { get; set; }
+
+        //[J(Required = Required.AllowNull, PropertyName = "playing")]
+        //public Playing Playing { get; set; }
+
         [J("service")] public string Service { get; set; }
         [J("dontScrobble")] public bool DontScrobble { get; set; }
         [J("supports")] public Supports Supports { get; set; }

@@ -5,57 +5,61 @@ using System.IO;
 
 namespace SMTC_API
 {
+    /// <summary>
+    /// Construct this class to write example json and the schema for this api shim.
+    /// </summary>
     public class SMTC_api_example
     {
-        static SystemMediaTransportControls smtc = new SystemMediaTransportControls()
+        private static SystemMediaTransportControls smtc = new SystemMediaTransportControls()
+        {
+            AutoRepeatMode = MediaPlaybackAutoRepeatMode.None,
+            DisplayUpdater = new SystemMediaTransportControlsDisplayUpdater()
             {
-                AutoRepeatMode = MediaPlaybackAutoRepeatMode.None,
-                DisplayUpdater = new SystemMediaTransportControlsDisplayUpdater()
+                ThumbnailURI = "https://images-na.ssl-images-amazon.com/images/I/51QFGpP5mOL._SY355_.jpg",
+                AppMediaId = "AppMediaId",
+                ImageProperties = new ImageDisplayProperties()
                 {
-                    AppMediaId = "AppMediaId",
-                    ImageProperties = new ImageDisplayProperties()
-                    {
-                        Subtitle = "ImageSubtitle",
-                        Title = "Imagetitle"
-                    },
-                    MusicProperties = new MusicDisplayProperties()
-                    {
-                        AlbumArtist = "Music AlbumArtist",
-                        AlbumTrackCount = 4,
-                        AlbumTitle = "Music AlbumTitle",
-                        Artist = "Music Artist",
-                        Genres = new List<string>(new string[] { "Genre1", "Genre2", "Genre3" }),
-                        Title = "Music Title",
-                        TrackNumber = 3
-                    },
-                    Type = MediaPlaybackType.Music,
-                    VideoProperties = new VideoDisplayProperties()
-                    {
-                        Genres = new List<string>(new string[] { "Genre1", "Genre2", "Genre3" }),
-                        Subtitle = "Video Subtitle",
-                        Title = "Video Title"
-                    }
+                    Subtitle = "ImageSubtitle",
+                    Title = "Imagetitle"
                 },
-                IsChannelDownEnabled = false,
-                IsChannelUpEnabled = false,
-                IsEnabled = true,
-                IsFastForwardEnabled = false,
-                IsNextEnabled = true,
-                IsPauseEnabled = true,
-                IsPlayEnabled = true,
-                IsPreviousEnabled = true,
-                IsRecordEnabled = false,
-                IsRewindEnabled = false,
-                IsStopEnabled = true,
-                PlaybackRate = 1.0,
-                PlaybackStatus = MediaPlaybackStatus.Playing,
-                ShuffleEnabled = false,
-                SoundLevel = SoundLevel.Full,
+                MusicProperties = new MusicDisplayProperties()
+                {
+                    AlbumArtist = "Music AlbumArtist",
+                    AlbumTrackCount = 4,
+                    AlbumTitle = "Music AlbumTitle",
+                    Artist = "Music Artist",
+                    Genres = new List<string>(new string[] { "Genre1", "Genre2", "Genre3" }),
+                    Title = "Music Title",
+                    TrackNumber = 3
+                },
+                Type = MediaPlaybackType.Music,
+                VideoProperties = new VideoDisplayProperties()
+                {
+                    Genres = new List<string>(new string[] { "Genre1", "Genre2", "Genre3" }),
+                    Subtitle = "Video Subtitle",
+                    Title = "Video Title"
+                }
+            },
+            IsChannelDownEnabled = false,
+            IsChannelUpEnabled = false,
+            IsEnabled = true,
+            IsFastForwardEnabled = false,
+            IsNextEnabled = true,
+            IsPauseEnabled = true,
+            IsPlayEnabled = true,
+            IsPreviousEnabled = true,
+            IsRecordEnabled = false,
+            IsRewindEnabled = false,
+            IsStopEnabled = true,
+            PlaybackRate = 1.0,
+            PlaybackStatus = MediaPlaybackStatus.Playing,
+            ShuffleEnabled = false,
+            SoundLevel = SoundLevel.Full,
         };
 
         public SMTC_api_example()
         {
-            File.WriteAllText("SystemMediaTransportControls.json", JsonConvert.SerializeObject(smtc));
+            File.WriteAllText("SystemMediaTransportControls.json", JsonConvert.SerializeObject(smtc, Formatting.Indented));
 
             var jsonSchemaGenerator = new JsonSchemaGenerator();
             var myType = typeof(SystemMediaTransportControls);
@@ -119,9 +123,17 @@ namespace SMTC_API
     {
         public MediaPlaybackType Type { get; set; }
         public string AppMediaId { get; set; }
+
+        [JsonProperty(Required = Required.AllowNull)]
         public ImageDisplayProperties ImageProperties { get; set; }
+
+        [JsonProperty(Required = Required.AllowNull)]
         public MusicDisplayProperties MusicProperties { get; set; }
+
+        [JsonProperty(Required = Required.AllowNull)]
         public VideoDisplayProperties VideoProperties { get; set; }
+
+        public string ThumbnailURI { get; set; }
     }
 
     public enum MediaPlaybackType
@@ -148,6 +160,7 @@ namespace SMTC_API
         public IList<string> Genres { get; set; }
         public uint AlbumTrackCount { get; set; }
     }
+
     public class VideoDisplayProperties
     {
         public string Title { get; set; }
