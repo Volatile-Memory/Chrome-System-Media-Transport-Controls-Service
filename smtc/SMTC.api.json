@@ -1,0 +1,42 @@
+{ // SystemMediaTransportControls
+  "IsPlayEnabled": false,
+  "IsPauseEnabled": false,
+  "IsNextEnabled": false,
+  "IsPreviousEnabled": false,
+  "IsEnabled": false,
+  "IsChannelDownEnabled": false,
+  "IsFastForwardEnabled": false,
+  "IsChannelUpEnabled": false,
+  "PlaybackStatus": 0,
+  "IsStopEnabled": false,
+  "IsRewindEnabled": false,
+  "IsRecordEnabled": false,
+  "DisplayUpdater": null,
+  "SoundLevel": 0,
+  "ShuffleEnabled": false,
+  "PlaybackRate": 0.0,
+  "AutoRepeatMode": 0
+}
+
+{ // SystemMediaTransportControlsDisplayUpdater
+  "Type": 0,
+  "AppMediaId": null,
+  "ImageProperties": { // ImageDisplayProperties
+    "Title": null,
+    "Subtitle": null
+  },
+  "MusicProperties": { // MusicDisplayProperties
+    "Title": null,
+    "Artist": null,
+    "AlbumArtist": null,
+    "TrackNumber": 0,
+    "AlbumTitle": null,
+    "Genres": null,
+    "AlbumTrackCount": 0
+  },
+  "VideoProperties": { // VideoDisplayProperties
+    "Title": null,
+    "Subtitle": null,
+    "Genres": null
+  }
+}

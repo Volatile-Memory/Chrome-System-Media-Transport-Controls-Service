@@ -1,306 +1,244 @@
-﻿using System;
-using System.ComponentModel;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using QuickType;
+using System;
 using System.Diagnostics;
-using Windows.Foundation;
+using System.IO;
 using Windows.Media;
 using Windows.Media.Playback;
-using Windows.Storage;
 using Windows.Storage.Streams;
 
 namespace smtc
 {
     /// <summary>
-    /// Implements System Media Transport Controls with publicly settable properties
+    /// System Media Transport Control API Wrapper
+    /// Allows control from JSON stubs over STDIO (e.g. Google Chrome Native Messaging)
     /// </summary>
-    class SMTCWrapper
+    internal class SystemMediaTransportControlsWrapper
     {
-        static TraceSwitch generalSwitch = new TraceSwitch("General", "Entire Application");
-
-        private SystemMediaTransportControlsDisplayUpdater _updater;
-        private SystemMediaTransportControls _systemMediaTransportControls;
         private MediaPlayer _mediaPlayer;
+        private SystemMediaTransportControls _smtc;
 
-        #region Properties
-        private string _status = "Uninitialized Status";
-        public string Status
-        {
-            get { return _status; }
-            set
-            {
-                _status = value;
-                Debug.WriteLine(value); //TODO
-                OnPropertyChanged("Status");
-            }
-        }
-
-        private RandomAccessStreamReference _albumart;
-        public RandomAccessStreamReference AlbumArt
-        {
-            get { return _albumart; }
-            set
-            {
-                _albumart = value;
-                _updater.Thumbnail = value;
-                _updater.Update();
-                OnPropertyChanged("AlbumArt");
-            }
-        }
-
-        private string _artist      = "artist";
-        public string Artist
-        {
-            get { return _artist; }
-            set
-            {
-                _artist = value;
-                _updater.MusicProperties.Artist = value;
-                _updater.Update();
-                OnPropertyChanged("Artist");
-            }
-        }
-
-        private string _albumArtist = "album artist";
-        public string AlbumArtist
-        {
-            get { return _albumArtist; }
-            set
-            {
-                _albumArtist = value;
-                _updater.MusicProperties.AlbumArtist = value;
-                _updater.Update();
-                OnPropertyChanged("AlbumArtist");
-            }
-        }
-
-        private string _title       = "song title";
-        public string Title
-        {
-            get { return _title; }
-            set
-            {
-                _title = value;
-                _updater.MusicProperties.Title = value;
-                _updater.Update();
-                OnPropertyChanged("Title");
-            }
-        }
-#endregion
-
-        public SMTCWrapper()
+        public SystemMediaTransportControlsWrapper()
         {
             _mediaPlayer = new MediaPlayer();
-            _systemMediaTransportControls = _mediaPlayer.SystemMediaTransportControls;
-            _updater = _systemMediaTransportControls.DisplayUpdater;
+            _mediaPlayer.CommandManager.IsEnabled = false; // TODO: Figure out what this is doing and if it needs to be enabled or if it can be disabled and worked
+            _smtc = _mediaPlayer.SystemMediaTransportControls;
 
-            _updater.Type = MediaPlaybackType.Music;
+            _smtc.AutoRepeatModeChangeRequested     += _SMTC_AutoRepeatModeChangeRequested; ;
+            _smtc.ButtonPressed                     += _SMTC_ButtonPressed;
+            _smtc.PlaybackPositionChangeRequested   += _SMTC_PlaybackPositionChangeRequested;
+            _smtc.PlaybackRateChangeRequested       += _SMTC_PlaybackRateChangeRequested;
+            _smtc.PropertyChanged                   += _SMTC_PropertyChanged;
+            _smtc.ShuffleEnabledChangeRequested     += _SMTC_ShuffleEnabledChangeRequested;
 
-            _mediaPlayer.CommandManager.IsEnabled = false; // TODO: Figure out what this is doing and if it needs to be enabled or if it can be disabled and worked around
-
-            _systemMediaTransportControls.IsEnabled = true;
-
-            _systemMediaTransportControls.IsPlayEnabled = true;
-            _systemMediaTransportControls.IsPauseEnabled = true;
-            _systemMediaTransportControls.IsStopEnabled = true;
-
-
-            _systemMediaTransportControls.IsPreviousEnabled = true;
-            _systemMediaTransportControls.IsRewindEnabled = true;
-
-            _systemMediaTransportControls.IsNextEnabled = true;
-            _systemMediaTransportControls.IsFastForwardEnabled = true;
-
-
-            _systemMediaTransportControls.PlaybackRate = 1.0;
-
-            _systemMediaTransportControls.IsChannelDownEnabled = true;
-            _systemMediaTransportControls.IsChannelUpEnabled = true;
-
-
-            _systemMediaTransportControls.IsRecordEnabled = true;
-
-            _systemMediaTransportControls.ShuffleEnabled = true;
-
-            _systemMediaTransportControls.PlaybackStatus = MediaPlaybackStatus.Playing;
-
-            
-            _systemMediaTransportControls.AutoRepeatModeChangeRequested     += _systemMediaTransportControls_AutoRepeatModeChangeRequested; ;
-            _systemMediaTransportControls.ButtonPressed                     += _systemMediaTransportControls_ButtonPressed;
-            _systemMediaTransportControls.PlaybackPositionChangeRequested   += _systemMediaTransportControls_PlaybackPositionChangeRequested;
-            _systemMediaTransportControls.PlaybackRateChangeRequested       += _systemMediaTransportControls_PlaybackRateChangeRequested;
-            _systemMediaTransportControls.PropertyChanged                   += _systemMediaTransportControls_PropertyChanged;
-            _systemMediaTransportControls.ShuffleEnabledChangeRequested     += _systemMediaTransportControls_ShuffleEnabledChangeRequested;
-
+            _smtc.DisplayUpdater.Type = MediaPlaybackType.Music;
+            _smtc.IsEnabled = true;
         }
 
-        private void _systemMediaTransportControls_AutoRepeatModeChangeRequested(SystemMediaTransportControls sender, AutoRepeatModeChangeRequestedEventArgs args)
+        public void StartJsonStdIOMessagePump()
         {
-            switch (args.RequestedAutoRepeatMode)
+            SwayFmMediaKeysState data;
+            while ((data = ReadChromeNativeMessageFromSTDIO()) != null)
             {
-                case MediaPlaybackAutoRepeatMode.None:
-                    //if (sender.AutoRepeatMode == MediaPlaybackAutoRepeatMode.List)
-                    //{
-
-                    //}
-                    break;
-                case MediaPlaybackAutoRepeatMode.Track:
-                    break;
-                case MediaPlaybackAutoRepeatMode.List:
-                    break;
-                default:
-                    break;
+                ProcessMessage(data);
             }
         }
 
-        private void _systemMediaTransportControls_PlaybackPositionChangeRequested(SystemMediaTransportControls sender, PlaybackPositionChangeRequestedEventArgs args)
+        private SwayFmMediaKeysState ReadChromeNativeMessageFromSTDIO()
         {
-            //args.RequestedPlaybackPosition;
+            var stdin = Console.OpenStandardInput();
+            var length = 0;
+
+            var lengthBytes = new byte[4];
+            stdin.Read(lengthBytes, 0, 4);
+            length = BitConverter.ToInt32(lengthBytes, 0);
+
+            var buffer = new char[length];
+            using (var reader = new StreamReader(stdin))
+            {
+                while (reader.Peek() >= 0)
+                {
+                    reader.Read(buffer, 0, buffer.Length);
+                }
+            }
+
+            return SwayFmMediaKeysState.FromJson(new string(buffer));
         }
 
-        private void _systemMediaTransportControls_ShuffleEnabledChangeRequested(SystemMediaTransportControls sender, ShuffleEnabledChangeRequestedEventArgs args)
+        private void WriteChromeNativeMessageToSTDIO(JToken data)
         {
-            //args.RequestedShuffleEnabled; 
+            var json = new JObject();
+            json.Add(data);
+
+            var bytes = System.Text.Encoding.UTF8.GetBytes(json.ToString(Formatting.None));
+
+            var stdout = Console.OpenStandardOutput();
+            stdout.WriteByte((byte)((bytes.Length >> 0) & 0xFF));
+            stdout.WriteByte((byte)((bytes.Length >> 8) & 0xFF));
+            stdout.WriteByte((byte)((bytes.Length >> 16) & 0xFF));
+            stdout.WriteByte((byte)((bytes.Length >> 24) & 0xFF));
+            stdout.Write(bytes, 0, bytes.Length);
+            stdout.Flush();
         }
 
-        private void _systemMediaTransportControls_PropertyChanged(SystemMediaTransportControls sender, SystemMediaTransportControlsPropertyChangedEventArgs args)
+        public void ProcessMessage(SwayFmMediaKeysState data)
         {
-            //args.Property
-            //TODO: is this sound level change events?
+            try
+            {
+                _smtc.DisplayUpdater.MusicProperties.Title = data.Title;
+                _smtc.DisplayUpdater.MusicProperties.AlbumArtist = data.Artist;
+                _smtc.DisplayUpdater.MusicProperties.Artist = data.Artist;
+                //smtc.Status = (bool)playing["playing"]?.Value<bool>() ? "Playing" : "Stopped";
+
+                _smtc.IsPlayEnabled = data.Supports.Playpause;
+                _smtc.IsPauseEnabled = data.Supports.Playpause;
+                //_smtc.IsStopEnabled = data.Supports.;
+
+                _smtc.IsPreviousEnabled = data.Supports.Previous;
+                //_smtc.IsRewindEnabled = true;
+
+                _smtc.IsNextEnabled = data.Supports.Next;
+                //_smtc.IsFastForwardEnabled = true;
+
+                _smtc.PlaybackRate = 1.0;
+
+                //_smtc.IsChannelDownEnabled = true;
+                //_smtc.IsChannelUpEnabled = true;
+
+                //_smtc.IsRecordEnabled = true;
+
+                //_smtc.ShuffleEnabled = true;
+
+                //_smtc.PlaybackStatus = data.Playing; //TODO: Playing dont allways be an object, sometimes its a bool
+            }
+            catch (Exception)
+            {
+                Debug.WriteLine("[Debug] Failed to parse json or set smtc metadata.");
+            }
+
+            try
+            {
+                if (!string.IsNullOrEmpty(data.AlbumArt))
+                {
+                    _smtc.DisplayUpdater.Thumbnail = RandomAccessStreamReference.CreateFromUri(new Uri(data.AlbumArt.Replace("\"", "")));
+                }
+                else
+                {
+                    Debug.WriteLine("[Debug] AlbumArt String Empty.");
+                }
+            }
+            catch (Exception)
+            {
+                Debug.WriteLine("[Debug] Failed to create albumart from URI: " + data.AlbumArt);
+            }
+
+            Debug.WriteLine(data.ToString());
+
+            _smtc.DisplayUpdater.Update();
         }
 
-        private void _systemMediaTransportControls_PlaybackRateChangeRequested(SystemMediaTransportControls sender, PlaybackRateChangeRequestedEventArgs args)
-        {
-            //args.RequestedPlaybackRate;
-        }
+        #region WriteChromeNativeMessageToSTDIO for every event.
 
-        private void _systemMediaTransportControls_ButtonPressed(SystemMediaTransportControls sender, SystemMediaTransportControlsButtonPressedEventArgs args)
+        private void _SMTC_ButtonPressed(SystemMediaTransportControls sender, SystemMediaTransportControlsButtonPressedEventArgs args)
         {
             switch (args.Button)
             {
                 case SystemMediaTransportControlsButton.Play:
-                    Status = "Play Button Pressed";
-                    if (sender.IsPlayEnabled)
-                    {
-                          PressedPlayButton();
-                    }
+                    //WriteChromeNativeMessageToSTDIO(new JProperty("Command", "Play"));
+                    WriteChromeNativeMessageToSTDIO(new JProperty("Command", new JProperty("Command", "Play")));
                     break;
+
                 case SystemMediaTransportControlsButton.Pause:
-                    Status = "Pause Button Pressed";
-                    if (sender.IsPauseEnabled)
-                    {
-                          PressedPauseButton();
-                    }
+                    WriteChromeNativeMessageToSTDIO(new JProperty("Command", "Pause"));
                     break;
+
                 case SystemMediaTransportControlsButton.Stop:
-                    Status = "Stop Button Pressed";
-                    if (sender.IsStopEnabled)
-                    {
-                          PressedStopButton();
-                    }
+                    WriteChromeNativeMessageToSTDIO(new JProperty("Command", "Stop"));
                     break;
+
                 case SystemMediaTransportControlsButton.Record:
-                    Status = "Record Button Pressed";
-                    if (sender.IsRecordEnabled)
-                    {
-                          PressedRecordButton();
-                    }
+                    WriteChromeNativeMessageToSTDIO(new JProperty("Command", "Record"));
                     break;
+
                 case SystemMediaTransportControlsButton.FastForward:
-                    Status = "FastForward Button Pressed";
-                    if (sender.IsFastForwardEnabled)
-                    {
-                          PressedFastForwardButton();
-                    }
+                    WriteChromeNativeMessageToSTDIO(new JProperty("Command", "FastForward"));
                     break;
+
                 case SystemMediaTransportControlsButton.Rewind:
-                    Status = "Rewind Button Pressed";
-                    if (sender.IsRewindEnabled)
-                    {
-                          PressedRewindButton();
-                    }
+                    WriteChromeNativeMessageToSTDIO(new JProperty("Command", "Rewind"));
                     break;
+
                 case SystemMediaTransportControlsButton.Next:
-                    Status = "Next Button Pressed";
-                    if (sender.IsNextEnabled)
-                    {
-                          PressedNextButton();
-                    }
+                    WriteChromeNativeMessageToSTDIO(new JProperty("Command", "Next"));
                     break;
+
                 case SystemMediaTransportControlsButton.Previous:
-                    Status = "Previous Button Pressed";
-                    if (sender.IsPreviousEnabled)
-                    {
-                          PressedPreviousButton();
-                    }
+                    WriteChromeNativeMessageToSTDIO(new JProperty("Command", "Previous"));
                     break;
+
                 case SystemMediaTransportControlsButton.ChannelUp:
-                    Status = "ChannelUp Button Pressed";
-                    if (sender.IsChannelUpEnabled)
-                    {
-                          PressedChannelUpButton();
-                    }
+                    WriteChromeNativeMessageToSTDIO(new JProperty("Command", "ChannelUp"));
                     break;
+
                 case SystemMediaTransportControlsButton.ChannelDown:
-                    Status = "ChannelDown Button Pressed";
-                    if (sender.IsChannelDownEnabled)
-                    {
-                          PressedChannelDownButton();
-                    }
+                    WriteChromeNativeMessageToSTDIO(new JProperty("Command", "ChannelDown"));
                     break;
+
                 default:
                     break;
             }
         }
 
-        private void PressedChannelDownButton()
+        private void _SMTC_PropertyChanged(SystemMediaTransportControls sender, SystemMediaTransportControlsPropertyChangedEventArgs args)
         {
-        }
-
-        private void PressedChannelUpButton()
-        {
-        }
-
-        private void PressedPreviousButton()
-        {
-        }
-
-        private void PressedNextButton()
-        {
-        }
-
-        private void PressedRewindButton()
-        {
-        }
-
-        private void PressedFastForwardButton()
-        {
-        }
-
-        private void PressedRecordButton()
-        {
-        }
-
-        private void PressedStopButton()
-        {
-        }
-
-        private void PressedPauseButton()
-        {
-        }
-
-        private void PressedPlayButton()
-        {
-        }
-
-        // Create the OnPropertyChanged method to raise the event
-        protected void OnPropertyChanged(string name)
-        {
-            PropertyChangedEventHandler handler = PropertyChanged;
-            if (handler != null)
+            switch (args.Property)
             {
-                handler(this, new PropertyChangedEventArgs(name));
+                case SystemMediaTransportControlsProperty.SoundLevel:
+                    WriteChromeNativeMessageToSTDIO(new JProperty("Command", new JProperty("SystemMediaTransportControlsProperty", "SoundLevel")));
+                    break;
+
+                default:
+                    break;
             }
         }
-        public event PropertyChangedEventHandler PropertyChanged;
 
+        private void _SMTC_AutoRepeatModeChangeRequested(SystemMediaTransportControls sender, AutoRepeatModeChangeRequestedEventArgs args)
+        {
+            switch (args.RequestedAutoRepeatMode)
+            {
+                case MediaPlaybackAutoRepeatMode.None:
+                    WriteChromeNativeMessageToSTDIO(new JProperty("Command", new JProperty("MediaPlaybackAutoRepeatMode", "None")));
+                    break;
+
+                case MediaPlaybackAutoRepeatMode.Track:
+                    WriteChromeNativeMessageToSTDIO(new JProperty("Command", new JProperty("MediaPlaybackAutoRepeatMode", "Track")));
+                    break;
+
+                case MediaPlaybackAutoRepeatMode.List:
+                    WriteChromeNativeMessageToSTDIO(new JProperty("Command", new JProperty("MediaPlaybackAutoRepeatMode", "List")));
+                    break;
+
+                default:
+                    break;
+            }
+        }
+
+        private void _SMTC_PlaybackRateChangeRequested(SystemMediaTransportControls sender, PlaybackRateChangeRequestedEventArgs args)
+        {
+            WriteChromeNativeMessageToSTDIO(new JProperty("Command", new JProperty("RequestedPlaybackRate", args.RequestedPlaybackRate)));
+        }
+
+        private void _SMTC_PlaybackPositionChangeRequested(SystemMediaTransportControls sender, PlaybackPositionChangeRequestedEventArgs args)
+        {
+            WriteChromeNativeMessageToSTDIO(new JProperty("Command", new JProperty("RequestedPlaybackPosition", args.RequestedPlaybackPosition)));
+        }
+
+        private void _SMTC_ShuffleEnabledChangeRequested(SystemMediaTransportControls sender, ShuffleEnabledChangeRequestedEventArgs args)
+        {
+            WriteChromeNativeMessageToSTDIO(new JProperty("Command", new JProperty("RequestedShuffleEnabled", args.RequestedShuffleEnabled)));
+        }
+
+        #endregion WriteChromeNativeMessageToSTDIO for every event.
     }
 }
