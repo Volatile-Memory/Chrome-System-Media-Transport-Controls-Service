@@ -85,7 +85,9 @@
   <ItemGroup>
     <None Include="App.config" />
     <None Include="attachToSmtc.ps1" />
+    <None Include="manifest.json" />
     <None Include="packages.config" />
+    <None Include="registerManifest.bat" />
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.6.1">

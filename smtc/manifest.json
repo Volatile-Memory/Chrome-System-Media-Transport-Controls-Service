@@ -1,0 +1,12 @@
+{
+  "name": "com.computron.smtc",
+  "description": "Chrome System Media Transport Controls",
+  // "path": "C:\\Program Files\\ChromeSMTC\\smtc.exe",
+  "path": "C:\\Users\\CMPTRNDKP\\source\\repos\\smtc\\smtc\\bin\\Debug\\smtc.exe",
+  "type": "stdio",
+  "allowed_origins": [
+    // "chrome-extension://icckhjgjjompfgoiidainoapgjepncej/",
+    // "chrome-extension://knldjmfmopnpolahpmmgbagdohdnhkik/",
+    "chrome-extension://pcgabebhohhgkkahkpklfdfblgilicec/"
+  ]
+}
