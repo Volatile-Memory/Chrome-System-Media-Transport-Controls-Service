@@ -124,13 +124,13 @@ namespace SMTC_API
         public MediaPlaybackType Type { get; set; }
         public string AppMediaId { get; set; }
 
-        [JsonProperty(Required = Required.AllowNull)]
+        [JsonProperty(Required = Required.Default)]
         public ImageDisplayProperties ImageProperties { get; set; }
 
-        [JsonProperty(Required = Required.AllowNull)]
+        [JsonProperty(Required = Required.Default)]
         public MusicDisplayProperties MusicProperties { get; set; }
 
-        [JsonProperty(Required = Required.AllowNull)]
+        [JsonProperty(Required = Required.Default)]
         public VideoDisplayProperties VideoProperties { get; set; }
 
         public string ThumbnailURI { get; set; }

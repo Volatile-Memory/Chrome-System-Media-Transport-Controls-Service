@@ -38,14 +38,14 @@ namespace smtc
 
         public void StartJsonStdIOMessagePump()
         {
-            SwayFmMediaKeysState data;
+            string data;
             while ((data = ReadChromeNativeMessageFromSTDIO()) != null)
             {
                 ProcessMessage(data);
             }
         }
 
-        private SwayFmMediaKeysState ReadChromeNativeMessageFromSTDIO()
+        private string ReadChromeNativeMessageFromSTDIO()
         {
             var stdin = Console.OpenStandardInput();
             var length = 0;
@@ -63,7 +63,7 @@ namespace smtc
                 }
             }
 
-            return SwayFmMediaKeysState.FromJson(new string(buffer));
+            return new string(buffer);
         }
 
         private void WriteChromeNativeMessageToSTDIO(JToken data)
@@ -82,49 +82,51 @@ namespace smtc
             stdout.Flush();
         }
 
-        public void ProcessMessage(SwayFmMediaKeysState data)
+        public void ProcessMessage(string jsonMsg)
         {
+            Debug.WriteLine("[SMTC] Got JSON: " + jsonMsg);
+            SMTC_API.SystemMediaTransportControls data = JsonConvert.DeserializeObject<SMTC_API.SystemMediaTransportControls>(jsonMsg, Converter.Settings);
+
             try
             {
-                _smtc.DisplayUpdater.MusicProperties.Title = data.Title;
-                _smtc.DisplayUpdater.MusicProperties.AlbumArtist = data.Artist;
-                _smtc.DisplayUpdater.MusicProperties.Artist = data.Artist;
-                //smtc.Status = (bool)playing["playing"]?.Value<bool>() ? "Playing" : "Stopped";
+                _smtc.DisplayUpdater.MusicProperties.Title = data.DisplayUpdater.MusicProperties.Title;
+                _smtc.DisplayUpdater.MusicProperties.AlbumArtist = data.DisplayUpdater.MusicProperties.AlbumArtist;
+                _smtc.DisplayUpdater.MusicProperties.Artist = data.DisplayUpdater.MusicProperties.Artist;
+                _smtc.PlaybackStatus = (MediaPlaybackStatus)data.PlaybackStatus;
 
                 Debug.WriteLine("[SMTC] Set Track Data");
 
-                _smtc.IsPlayEnabled = data.Supports.Playpause;
-                _smtc.IsPauseEnabled = data.Supports.Playpause;
-                //_smtc.IsStopEnabled = data.Supports.;
+                _smtc.IsPlayEnabled = data.IsPlayEnabled;
+                _smtc.IsPauseEnabled = data.IsPauseEnabled;
+                _smtc.IsStopEnabled = data.IsStopEnabled;
 
-                _smtc.IsPreviousEnabled = data.Supports.Previous;
-                //_smtc.IsRewindEnabled = true;
+                _smtc.IsPreviousEnabled = data.IsPreviousEnabled;
+                _smtc.IsRewindEnabled = data.IsRewindEnabled;
 
-                _smtc.IsNextEnabled = data.Supports.Next;
-                //_smtc.IsFastForwardEnabled = true;
+                _smtc.IsNextEnabled = data.IsNextEnabled;
+                _smtc.IsFastForwardEnabled = data.IsFastForwardEnabled;
 
-                _smtc.PlaybackRate = 1.0;
+                _smtc.PlaybackRate = data.PlaybackRate;
 
-                //_smtc.IsChannelDownEnabled = true;
-                //_smtc.IsChannelUpEnabled = true;
+                _smtc.IsChannelDownEnabled = data.IsChannelDownEnabled;
+                _smtc.IsChannelUpEnabled = data.IsChannelUpEnabled;
 
-                //_smtc.IsRecordEnabled = true;
+                _smtc.IsRecordEnabled = data.IsRecordEnabled;
 
-                //_smtc.ShuffleEnabled = true;
-
-                //_smtc.PlaybackStatus = data.Playing; //TODO: Playing dont allways be an object, sometimes its a bool
+                _smtc.ShuffleEnabled = data.ShuffleEnabled;
+                Debug.WriteLine("[SMTC] Set Player Capabilities.");
             }
             catch (Exception)
             {
                 Debug.WriteLine("[Debug] Failed to parse json or set smtc metadata.");
             }
-            Debug.WriteLine("[SMTC] Set Player Capabilities.");
 
             try
             {
-                if (!string.IsNullOrEmpty(data.AlbumArt))
+                if (!string.IsNullOrEmpty(data.DisplayUpdater.ThumbnailURI))
                 {
-                    _smtc.DisplayUpdater.Thumbnail = RandomAccessStreamReference.CreateFromUri(new Uri(data.AlbumArt.Replace("\"", "")));
+                    _smtc.DisplayUpdater.Thumbnail = RandomAccessStreamReference.CreateFromUri(new Uri(data.DisplayUpdater.ThumbnailURI.Replace("\"", "")));
+                    Debug.WriteLine("[Debug] Set AlbumArt.");
                 }
                 else
                 {
@@ -133,10 +135,8 @@ namespace smtc
             }
             catch (Exception)
             {
-                Debug.WriteLine("[Debug] Failed to create albumart from URI: " + data.AlbumArt);
+                Debug.WriteLine("[Debug] Failed to create albumart from URI: " + data.DisplayUpdater.ThumbnailURI);
             }
-
-            Debug.WriteLine("[SMTC] Set all data from JSON: " + data.ToJson());
 
             _smtc.DisplayUpdater.Update();
         }
@@ -148,8 +148,7 @@ namespace smtc
             switch (args.Button)
             {
                 case SystemMediaTransportControlsButton.Play:
-                    //WriteChromeNativeMessageToSTDIO(new JProperty("Command", "Play"));
-                    WriteChromeNativeMessageToSTDIO(new JProperty("Command", new JProperty("Command", "Play")));
+                    WriteChromeNativeMessageToSTDIO(new JProperty("Command", "Play"));
                     break;
 
                 case SystemMediaTransportControlsButton.Pause:
